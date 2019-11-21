@@ -8,7 +8,7 @@ import shutil
 
 from crop_image.py import crop_img_from_largest_connected, image_orientation
 
-basepath = 'C:/Users/Constantine/Documents/ML/DICOM samples/RIDER Breast MRI/RIDER-1125105682/09-09-1880-coffee break exam - t0 mins-53837/2-early anatomical reference-77018'
+basepath = './'
 
 views = ['LCC', 'RCC', 'LMLO', 'RMLO']
 
