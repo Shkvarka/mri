@@ -100,6 +100,7 @@ def main():
         img3d[:, :, i] = img2d
 
     basepath_output_dir = basepath + '/' + output_dir
+    basepath_output_dir = basepath_output_dir.replace('//', '/')
     output_rcc_dir = basepath_output_dir + views[0] + '/'
     output_lcc_dir = basepath_output_dir + views[1] + '/'
     output_lmlo_dir = basepath_output_dir + views[2] + '/'
