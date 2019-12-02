@@ -106,7 +106,7 @@ def main():
     output_lmlo_dir = basepath_output_dir + views[2] + '/'
     output_rmlo_dir = basepath_output_dir + views[3] + '/'
 
-    shutil.rmtree(basepath_output_dir)
+    shutil.rmtree(basepath_output_dir, ignore_errors=True)
     os.makedirs(os.path.dirname(basepath_output_dir), exist_ok=True)
     os.makedirs(os.path.dirname(output_rcc_dir), exist_ok=True)
     os.makedirs(os.path.dirname(output_lcc_dir), exist_ok=True)
