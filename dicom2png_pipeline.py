@@ -6,7 +6,7 @@ from PIL import Image
 import scipy.ndimage
 import shutil
 
-from mri.crop_image import crop_img_from_largest_connected, image_orientation
+from crop_image import crop_img_from_largest_connected, image_orientation
 
 basepath = './'
 
