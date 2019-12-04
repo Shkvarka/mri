@@ -10,7 +10,7 @@ from crop_image import crop_img_from_largest_connected, image_orientation
 
 basepath = 'D:/!_DATA/DICOM/RIDER Breast MRI/RIDER-1125105682/09-09-1880-coffee break exam - t0 mins-53837/2-early anatomical reference-77018'
 
-views = ['LCC', 'RCC', 'LMLO', 'RMLO']
+views = ['RCC', 'LCC', 'LMLO', 'RMLO']
 
 def GetDefaultImageWindowLevel(data, intercept=0, slope=1):
     """Determine the default window/level for the DICOM image."""
@@ -115,78 +115,122 @@ def main():
 
     # TODO calc correct middle slice position
     middle_lateral_slice = img_shape[1]//2
-    """RCC"""
-    # for i in range(0, middle_lateral_slice):
-    #     if not (np.count_nonzero(img3d[:, i, :]) / img3d[:, i, :].size) > 0.3:
-    #         continue
-    #     scaled_img = scipy.ndimage.zoom(img3d[:, i, :], aspect_ratio, order=img_smooth_filter, mode='wrap')
-    #     roi_box = crop_img_from_largest_connected(scaled_img, image_orientation('NO', 'L'), iterations=33, buffer_size=10)
-    #     if roi_box is None:
-    #         continue
-    #     top, bottom, left, right = roi_box[0]
-    #     GetImage(scaled_img[top:bottom, left:right], window, level) \
-    #         .save(output_rcc_dir + patient_id + views[0] + str(i) + '.png')
-    #
-    # """LCC"""
-    # for i in range(middle_lateral_slice, img_shape[1]):
-    #     if not (np.count_nonzero(img3d[:, i, :]) / img3d[:, i, :].size) > 0.3:
-    #         continue
-    #     scaled_img = scipy.ndimage.zoom(img3d[:, i, :], aspect_ratio, order=img_smooth_filter, mode='wrap')
-    #     scaled_img = np.rot90(scaled_img)
-    #     roi_box = crop_img_from_largest_connected(scaled_img, image_orientation('NO', 'R'), iterations=33, buffer_size=10)
-    #     if roi_box is None:
-    #         continue
-    #     top, bottom, left, right = roi_box[0]
-    #     GetImage(scaled_img[top:bottom, left:right], window, level)\
-    #         .save(output_lcc_dir + patient_id + views[1] + str(i) + '.png')
+
+    black_color_threshold = 0.1
 
     """ RMLO / LMLO """
-    slices_to_crop = []
+    non_empty_slices = []
     current_slice_lenght = 0
     current_slice_width = 0
     roi_box_biggest = [0,0,0,0]
+
     for i in range(0, img_shape[2]):
+        if is_empty_image(img3d, i, black_color_threshold):
+            continue
         current_slice = img3d[:, :middle_lateral_slice, i]
 
         roi_box = crop_img_from_largest_connected(current_slice, image_orientation('YES', 'L'), iterations=33, buffer_size=10)
         if roi_box is None:
             continue
-        slices_to_crop.append(i)
+        non_empty_slices.append(i)
         current_slice_lenght, current_slice_width, roi_box_biggest = \
-            get_crop_size(current_slice_lenght, current_slice_width, roi_box[0], roi_box_biggest)
+            compare_crop_size(current_slice_lenght, current_slice_width, roi_box[0], roi_box_biggest)
 
     top, bottom, left, right = roi_box_biggest
 
-    for i in slices_to_crop:
-        current_slice = img3d[:, :middle_lateral_slice, i]
+    # save image
+    for i in non_empty_slices:
+        current_slice = img3d[:, :middle_lateral_slice, i] ##  == non_empty_slices[i]??
         GetImage(current_slice[top:bottom, left:right], window, level) \
             .save(output_lmlo_dir + patient_id + views[2] + str(i) + '.png')
 
-    slices_to_crop = []
+    non_empty_slices = []
     current_slice_lenght = 0
     current_slice_width = 0
     roi_box_biggest = [0,0,0,0]
 
     for i in range(0, img_shape[2]):
+        if is_empty_image(img3d, i, black_color_threshold):
+            continue
         current_slice = img3d[:, middle_lateral_slice+1:, i]
         roi_box = crop_img_from_largest_connected(current_slice, image_orientation('YES', 'R'), iterations=33, buffer_size=10)
         if roi_box is None:
             continue
-        slices_to_crop.append(i)
+        non_empty_slices.append(i)
         current_slice_lenght, current_slice_width, roi_box_biggest = \
-            get_crop_size(current_slice_lenght, current_slice_width, roi_box[0], roi_box_biggest)
+            compare_crop_size(current_slice_lenght, current_slice_width, roi_box[0], roi_box_biggest)
 
     top, bottom, left, right = roi_box_biggest
 
-    for i in slices_to_crop:
+    # save image
+    for i in non_empty_slices:
         current_slice = img3d[:, middle_lateral_slice+1:, i]
         GetImage(current_slice[top:bottom, left:right], window, level) \
             .save(output_rmlo_dir + patient_id + views[3] + str(i) + '.png')
 
+    """RCC"""
+    non_empty_slices = []
+    current_slice_lenght = 0
+    current_slice_width = 0
+    roi_box_biggest = [0,0,0,0]
+
+    for i in range(0, middle_lateral_slice):
+        if is_empty_image(img3d, i, black_color_threshold):
+            continue
+        scaled_img = scipy.ndimage.zoom(img3d[:, i, :], aspect_ratio, order=img_smooth_filter, mode='wrap')
+        scaled_img = np.rot90(scaled_img)
+        roi_box = crop_img_from_largest_connected(scaled_img, image_orientation('NO', 'L'), iterations=33, buffer_size=10)
+        if roi_box is None:
+            continue
+        non_empty_slices.append(i)
+        current_slice_lenght, current_slice_width, roi_box_biggest = \
+            compare_crop_size(current_slice_lenght, current_slice_width, roi_box[0], roi_box_biggest)
+        # top, bottom, left, right = roi_box[0]
+
+    top, bottom, left, right = roi_box_biggest
+
+    # save image
+    for i in non_empty_slices:
+        scaled_img = scipy.ndimage.zoom(img3d[:, i, :], aspect_ratio, order=img_smooth_filter, mode='wrap')
+        scaled_img = np.rot90(scaled_img)
+        GetImage(scaled_img[top:bottom, left:right], window, level) \
+            .save(output_rcc_dir + patient_id + views[0] + str(i) + '.png')
+
+    """LCC"""
+    non_empty_slices = []
+    current_slice_lenght = 0
+    current_slice_width = 0
+    roi_box_biggest = [0,0,0,0]
+
+    for i in range(middle_lateral_slice, img_shape[1]):
+        if is_empty_image(img3d, i, black_color_threshold):
+            continue
+        scaled_img = scipy.ndimage.zoom(img3d[:, i, :], aspect_ratio, order=img_smooth_filter, mode='wrap')
+        scaled_img = np.rot90(scaled_img)
+        roi_box = crop_img_from_largest_connected(scaled_img, image_orientation('NO', 'R'), iterations=33, buffer_size=10)
+        if roi_box is None:
+            continue
+        non_empty_slices.append(i)
+        current_slice_lenght, current_slice_width, roi_box_biggest = \
+            compare_crop_size(current_slice_lenght, current_slice_width, roi_box[0], roi_box_biggest)
+
+    top, bottom, left, right = roi_box_biggest
+
+    # save image
+    for i in non_empty_slices:
+        scaled_img = scipy.ndimage.zoom(img3d[:, i, :], aspect_ratio, order=img_smooth_filter, mode='wrap')
+        scaled_img = np.rot90(scaled_img)
+        GetImage(scaled_img[top:bottom, left:right], window, level)\
+            .save(output_lcc_dir + patient_id + views[1] + str(i) + '.png')
+
     print('finished')
 
 
-def get_crop_size(current_slice_lenght, current_slice_width, roi_box_params, roi_box_biggest):
+def is_empty_image(img3d, index, black_color_threshold):
+    return (np.count_nonzero(img3d[:, index, :]) / img3d[:, index, :].size) < black_color_threshold
+
+
+def compare_crop_size(current_slice_lenght, current_slice_width, roi_box_params, roi_box_biggest):
     current_slice_lenght_tmp = roi_box_params[1] - roi_box_params[0]
     current_slice_width_tmp = roi_box_params[3] - roi_box_params[2]
     if current_slice_lenght_tmp > current_slice_lenght:
